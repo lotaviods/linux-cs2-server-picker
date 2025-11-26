@@ -1,0 +1,69 @@
+#include <QCoreApplication>
+#include <QLocalServer>
+#include <QLocalSocket>
+#include <QDebug>
+#include <QFuture>
+#include <QFile>
+#include <unistd.h>
+#include <sys/stat.h> // for stat
+#include <sys/wait.h> // for waitpid
+#include "firewall/linuxfirewallservice.h"
+
+const QString SocketPath = "/tmp/CS2ServerPickerDaemon";
+
+int main(int argc, char *argv[]) {
+    QCoreApplication a(argc, argv);
+    LinuxFirewallService firewall;
+    QLocalServer server;
+    server.removeServer(SocketPath);
+    if (!server.listen(SocketPath)) {
+        qCritical() << "Cannot start daemon:" << server.errorString();
+        return 1;
+    }
+    QFile socketFile(SocketPath);
+    socketFile.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ReadGroup | QFile::WriteGroup | QFile::ReadOther | QFile::WriteOther);
+    qDebug() << "Daemon started, listening on" << SocketPath;
+
+    QObject::connect(&server, &QLocalServer::newConnection, [&]() {
+        QLocalSocket* socket = server.nextPendingConnection();
+        QObject::connect(socket, &QLocalSocket::readyRead, [socket, &firewall]() {
+            QByteArray data = socket->readAll();
+            QString command = QString::fromUtf8(data).trimmed();
+            qDebug() << "Daemon received command:" << command;
+            QStringList parts = command.split(' ');
+            QString cmd = parts[0];
+            QString result = "error";
+            qDebug() << "Processing command:" << cmd;
+            if (cmd == "isAdministrator") {
+                result = firewall.isAdministrator() ? "true" : "false";
+            } else if (cmd == "block") {
+                if (parts.size() >= 2) {
+                    QString ruleName = parts[1];
+                    QStringList ips = parts.mid(2);
+                    result = firewall.blockServerAsync(ruleName, ips).result() ? "ok" : "error";
+                }
+            } else if (cmd == "unblock") {
+                if (parts.size() >= 2) {
+                    QString ruleName = parts[1];
+                    result = firewall.unblockServerAsync(ruleName).result() ? "ok" : "error";
+                }
+            } else if (cmd == "unblockAll") {
+                result = firewall.unblockAllServersAsync().result() ? "ok" : "error";
+            } else if (cmd == "isBlocked") {
+                if (parts.size() >= 2) {
+                    QString ruleName = parts[1];
+                    result = firewall.isServerBlockedAsync(ruleName).result() ? "true" : "false";
+                }
+            } else if (cmd == "test") {
+                result = "ok";
+            }
+            qDebug() << "Result:" << result;
+            socket->write(result.toUtf8());
+            socket->flush();
+            socket->waitForBytesWritten(1000);
+            socket->disconnectFromServer();
+        });
+    });
+
+    return a.exec();
+}
