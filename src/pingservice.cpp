@@ -2,8 +2,12 @@
 #include <QProcess>
 #include <QRegularExpression>
 #include <QtConcurrent>
+#include <QDebug>
 
 const int PingTimeout = 3000;
+
+PingService::PingService(QObject* parent) : QObject(parent) {
+}
 
 QFuture<QVariant> PingService::pingServerAsync(ServerInfo& server) {
     return QtConcurrent::run([&server]() {
@@ -16,7 +20,10 @@ QFuture<QVariant> PingService::pingServerAsync(ServerInfo& server) {
         for (const QString& ip : server.ipAddresses) {
             QProcess process;
             process.start("ping", QStringList() << "-c" << "1" << "-W" << QString::number(PingTimeout / 1000) << ip);
-            process.waitForFinished(PingTimeout);
+            if (!process.waitForFinished(PingTimeout)) {
+                process.terminate();
+                process.waitForFinished();
+            }
             if (process.exitCode() == 0) {
                 QString output = process.readAllStandardOutput();
                 QRegularExpression regex("time=(\\d+)");
@@ -37,8 +44,10 @@ QFuture<QVariant> PingService::pingServerAsync(ServerInfo& server) {
 QFuture<void> PingService::pingServersAsync(QList<ServerInfo>& servers) {
     return QtConcurrent::run([this, &servers]() {
         QList<QFuture<QVariant>> futures;
-        for (ServerInfo& server : servers) {
+        for (int i = 0; i < servers.size(); ++i) {
+            ServerInfo& server = servers[i];
             futures.append(pingServerAsync(server));
+            emit serverStatusUpdated(i, server.status);
         }
         for (auto& future : futures) {
             future.waitForFinished();

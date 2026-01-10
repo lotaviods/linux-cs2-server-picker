@@ -12,10 +12,11 @@
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     firewallService = new FirewallClient(this);
-    pingService = new PingService();
+    pingService = new PingService(this);
     serverService = new ServerService(firewallService, this);
     isAdministrator = firewallService->isAdministrator();
     setupUI();
+    connect(pingService, &PingService::serverStatusUpdated, this, &MainWindow::onServerStatusUpdated);
     if (!isAdministrator) {
         statusBar->showMessage("Daemon not connected. Please start with: sudo ./CS2ServerPicker");
     }
@@ -119,6 +120,7 @@ void MainWindow::refreshBlocked() {
     connect(watcher, &QFutureWatcher<void>::finished, this, [this, watcher]() {
         servers = serverService->getServers(isClustered);
         updateTable();
+        statusBar->showMessage("Blocked status refreshed.");
         watcher->deleteLater();
     });
     watcher->setFuture(serverService->refreshBlockedStatusAsync(isClustered));
@@ -129,6 +131,7 @@ void MainWindow::onPingAll() {
         statusBar->showMessage("No servers loaded. Please refresh first.");
         return;
     }
+    statusBar->showMessage("Pinging servers...");
     auto refreshWatcher = new QFutureWatcher<void>(this);
     connect(refreshWatcher, &QFutureWatcher<void>::finished, this, [this, refreshWatcher]() {
         refreshWatcher->deleteLater();
@@ -159,15 +162,20 @@ void MainWindow::onBlockSelected() {
         statusBar->showMessage("No servers selected.");
         return;
     }
+    statusBar->showMessage("Blocking selected servers...");
+    int blockCount = 0;
     for (int idx : selected) {
         auto watcher = new QFutureWatcher<bool>(this);
-        connect(watcher, &QFutureWatcher<bool>::finished, this, [this, watcher]() {
+        connect(watcher, &QFutureWatcher<bool>::finished, this, [this, watcher, &blockCount, selected]() {
             watcher->deleteLater();
+            blockCount++;
+            if (blockCount == selected.size()) {
+                statusBar->showMessage("Selected servers blocked.");
+            }
         });
         watcher->setFuture(serverService->blockServerAsync(servers[idx]));
     }
     refreshBlocked();
-    statusBar->showMessage("Blocking selected servers...");
 }
 
 void MainWindow::onUnblockSelected() {
@@ -186,15 +194,19 @@ void MainWindow::onUnblockSelected() {
         statusBar->showMessage("No servers selected.");
         return;
     }
+    statusBar->showMessage("Unblocking selected servers...");
+    int unblockCount = 0;
     for (int idx : selected) {
         auto watcher = new QFutureWatcher<bool>(this);
-        connect(watcher, &QFutureWatcher<bool>::finished, this, [this, watcher]() {
+        connect(watcher, &QFutureWatcher<bool>::finished, this, [this, watcher, &unblockCount, selected]() {
             watcher->deleteLater();
+            unblockCount++;
+            if (unblockCount == selected.size()) {
+                refreshBlocked();
+            }
         });
         watcher->setFuture(serverService->unblockServerAsync(servers[idx]));
     }
-    refreshBlocked();
-    statusBar->showMessage("Unblocking selected servers...");
 }
 
 void MainWindow::onBlockAll() {
@@ -206,17 +218,28 @@ void MainWindow::onBlockAll() {
         statusBar->showMessage("No servers loaded. Please refresh first.");
         return;
     }
+    statusBar->showMessage("Blocking all servers...");
+    int blockCount = 0;
+    int totalToBlock = 0;
+    for (ServerInfo& server : servers) {
+        if (!server.isBlocked) {
+            totalToBlock++;
+        }
+    }
     for (ServerInfo& server : servers) {
         if (!server.isBlocked) {
             auto watcher = new QFutureWatcher<bool>(this);
-            connect(watcher, &QFutureWatcher<bool>::finished, this, [this, watcher]() {
+            connect(watcher, &QFutureWatcher<bool>::finished, this, [this, watcher, &blockCount, totalToBlock]() {
                 watcher->deleteLater();
+                blockCount++;
+                if (blockCount == totalToBlock) {
+                    statusBar->showMessage("All servers blocked.");
+                }
             });
             watcher->setFuture(serverService->blockServerAsync(server));
         }
     }
     refreshBlocked();
-    statusBar->showMessage("Blocking all servers...");
 }
 
 void MainWindow::onUnblockAll() {
@@ -256,6 +279,22 @@ void MainWindow::onToggleCluster() {
         unblockWatcher->deleteLater();
     });
     unblockWatcher->setFuture(serverService->unblockAllServersAsync());
+}
+
+void MainWindow::onServerStatusUpdated(int index, ServerStatus status) {
+    if (index >= 0 && index < servers.size()) {
+        servers[index].status = status;
+        updateServerRow(index);
+    }
+}
+
+void MainWindow::updateServerRow(int index) {
+    if (index >= 0 && index < table->rowCount()) {
+        const ServerInfo& server = servers[index];
+        QString latencyStr = server.latency.isValid() ? QString::number(server.latency.toInt()) : "-";
+        table->item(index, 3)->setText(latencyStr);
+        table->item(index, 4)->setText(statusToString(server.status));
+    }
 }
 
 void MainWindow::onHeaderClicked(int column) {

@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QTableWidget>
 #include <QStatusBar>
+#include <QObject>
 #include "serverinfo.h"
 #include "serverservice.h"
 #include "pingservice.h"
@@ -24,6 +25,7 @@ private slots:
     void onUnblockAll();
     void onToggleCluster();
     void onHeaderClicked(int column);
+    void onServerStatusUpdated(int index, ServerStatus status);
 
 private:
     QList<ServerInfo> servers;
@@ -39,6 +41,7 @@ private:
     void updateTable();
     QString statusToString(ServerStatus status);
     void refreshBlocked();
+    void updateServerRow(int index);
 };
 
 #endif // MAINWINDOW_H
