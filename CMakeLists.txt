@@ -66,9 +66,8 @@ add_custom_target(tar-archive ALL
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/CS2ServerPicker-package
     COMMAND ${CMAKE_COMMAND} -E copy CS2ServerPicker ${CMAKE_BINARY_DIR}/CS2ServerPicker-package/
     COMMAND ${CMAKE_COMMAND} -E copy CS2ServerPickerDaemon ${CMAKE_BINARY_DIR}/CS2ServerPicker-package/
-    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/run.sh ${CMAKE_BINARY_DIR}/CS2ServerPicker-package/
     COMMAND ${CMAKE_COMMAND} -E tar cvfz ${CMAKE_BINARY_DIR}/CS2ServerPicker.tar.gz CS2ServerPicker-package
     DEPENDS CS2ServerPicker CS2ServerPickerDaemon
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMENT "Creating tar archive with CS2ServerPicker binaries and run.sh"
+    COMMENT "Creating tar archive with CS2ServerPicker binaries"
 )

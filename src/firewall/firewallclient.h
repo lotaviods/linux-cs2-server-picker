@@ -13,10 +13,9 @@ public:
     QFuture<bool> unblockServerAsync(const QString& ruleName) override;
     QFuture<bool> isServerBlockedAsync(const QString& ruleName) override;
     QFuture<bool> unblockAllServersAsync() override;
-    bool isAdministrator() override;
+    QString sendCommand(const QString& command);
 
 private:
-    QString sendCommand(const QString& command);
 };
 
 #endif // FIREWALLCLIENT_H

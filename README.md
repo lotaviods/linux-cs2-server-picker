@@ -35,16 +35,6 @@ cmake ..
 make
 ```
 
-## Usage
-
-Run the run.sh script (it will handle starting the daemon with elevated privileges and the GUI):
-
-```bash
-./run.sh
-```
-
-The script will start the daemon in the background with administrator privileges and then launch the GUI as the regular user.
-
 ### Interface
 
 - **Refresh Servers**: Fetch latest server data from Steam

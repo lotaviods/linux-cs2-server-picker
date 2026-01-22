@@ -32,7 +32,7 @@ struct AdminState {
 
     QString getStatusMessage() const {
         if (!isAdministrator) {
-            return "Daemon not connected. Please start with: sudo ./CS2ServerPicker";
+            return "Daemon not connected.";
         }
         if (daemonConnected) {
             return "Connected";

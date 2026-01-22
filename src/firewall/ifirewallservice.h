@@ -12,7 +12,6 @@ public:
     virtual QFuture<bool> unblockServerAsync(const QString& ruleName) = 0;
     virtual QFuture<bool> isServerBlockedAsync(const QString& ruleName) = 0;
     virtual QFuture<bool> unblockAllServersAsync() = 0;
-    virtual bool isAdministrator() = 0;
 };
 
 #endif // IFIREWALLSERVICE_H

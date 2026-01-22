@@ -8,10 +8,6 @@ const QString LinuxFirewallService::RulePrefix = "CS2ServerPicker_";
 
 LinuxFirewallService::LinuxFirewallService(QObject* parent) : QObject(parent) {}
 
-bool LinuxFirewallService::isAdministrator() {
-    return getuid() == 0;
-}
-
 QFuture<bool> LinuxFirewallService::blockServerAsync(const QString& ruleName, const QStringList& ipAddresses) {
     return QtConcurrent::run([this, ruleName, ipAddresses]() {
         QString cleanName = ruleName;

@@ -30,7 +30,7 @@ private slots:
 private:
     QList<ServerInfo> servers;
     bool isClustered = false;
-    bool isAdministrator = false;
+    bool isRoot = false;
     ServerService* serverService;
     PingService* pingService;
     IFirewallService* firewallService;
@@ -39,6 +39,7 @@ private:
 
     void setupUI();
     void updateTable();
+    void updateAdministratorStatus();
     QString statusToString(ServerStatus status);
     void refreshBlocked();
     void updateServerRow(int index);

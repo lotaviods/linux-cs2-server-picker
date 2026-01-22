@@ -14,7 +14,6 @@ public:
     QFuture<bool> unblockServerAsync(const QString& ruleName) override;
     QFuture<bool> isServerBlockedAsync(const QString& ruleName) override;
     QFuture<bool> unblockAllServersAsync() override;
-    bool isAdministrator() override;
 
 private:
     static const QString RulePrefix;

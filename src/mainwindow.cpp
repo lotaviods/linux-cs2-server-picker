@@ -14,12 +14,8 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     firewallService = new FirewallClient(this);
     pingService = new PingService(this);
     serverService = new ServerService(firewallService, this);
-    isAdministrator = firewallService->isAdministrator();
     setupUI();
     connect(pingService, &PingService::serverStatusUpdated, this, &MainWindow::onServerStatusUpdated);
-    if (!isAdministrator) {
-        statusBar->showMessage("Daemon not connected. Please start with: sudo ./CS2ServerPicker");
-    }
     updateTable();
 }
 
@@ -147,10 +143,6 @@ void MainWindow::onPingAll() {
 }
 
 void MainWindow::onBlockSelected() {
-    if (!isAdministrator) {
-        statusBar->showMessage("Administrator privileges required.");
-        return;
-    }
     QList<int> selected;
     for (int i = 0; i < table->rowCount(); ++i) {
         QCheckBox* check = qobject_cast<QCheckBox*>(table->cellWidget(i, 0));
@@ -179,10 +171,6 @@ void MainWindow::onBlockSelected() {
 }
 
 void MainWindow::onUnblockSelected() {
-    if (!isAdministrator) {
-        statusBar->showMessage("Administrator privileges required.");
-        return;
-    }
     QList<int> selected;
     for (int i = 0; i < table->rowCount(); ++i) {
         QCheckBox* check = qobject_cast<QCheckBox*>(table->cellWidget(i, 0));
@@ -210,10 +198,6 @@ void MainWindow::onUnblockSelected() {
 }
 
 void MainWindow::onBlockAll() {
-    if (!isAdministrator) {
-        statusBar->showMessage("Administrator privileges required.");
-        return;
-    }
     if (servers.isEmpty()) {
         statusBar->showMessage("No servers loaded. Please refresh first.");
         return;
@@ -243,10 +227,6 @@ void MainWindow::onBlockAll() {
 }
 
 void MainWindow::onUnblockAll() {
-    if (!isAdministrator) {
-        statusBar->showMessage("Administrator privileges required.");
-        return;
-    }
     auto watcher = new QFutureWatcher<bool>(this);
     connect(watcher, &QFutureWatcher<bool>::finished, this, [this, watcher]() {
         if (watcher->result()) {
@@ -261,10 +241,6 @@ void MainWindow::onUnblockAll() {
 }
 
 void MainWindow::onToggleCluster() {
-    if (!isAdministrator) {
-        statusBar->showMessage("Administrator privileges required. Please unblock all servers first.");
-        return;
-    }
     auto unblockWatcher = new QFutureWatcher<bool>(this);
     connect(unblockWatcher, &QFutureWatcher<bool>::finished, this, [this, unblockWatcher]() {
         if (unblockWatcher->result()) {
